@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { motion } from "framer-motion";
@@ -7,9 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import Head from "next/head";
-import { v4 as uuidv4 } from "uuid";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024 * 1024; // 100GB
+const MAX_FILE_SIZE = 10 * 1024 * 1024 * 1024; // 10GB
 
 export default function SharePage2() {
   const [uploading, setUploading] = useState(false);
@@ -23,7 +23,7 @@ export default function SharePage2() {
 
     const file = acceptedFiles[0];
     if (file.size > MAX_FILE_SIZE) {
-      toast.error("File size exceeds 100GB limit");
+      toast.error("File size exceeds 10GB limit");
       return;
     }
 
@@ -32,42 +32,56 @@ export default function SharePage2() {
     setProgress(0);
 
     try {
-      const serversResponse = await fetch("https://api.gofile.io/servers");
-      const serversData = await serversResponse.json();
-      const server = serversData.data.server || "store3";
-
-      const uploadUrl = `https://${server}.gofile.io/uploadFile`;
       const formData = new FormData();
       formData.append("file", file);
 
-      const uploadResponse = await fetch(uploadUrl, {
-        method: "POST",
-        body: formData,
-      });
+      // Get the API key from environment variables
+      const apiKey = process.env.NEXT_PUBLIC_PIXELDRAIN_TOKEN;
 
-      if (!uploadResponse.ok) throw new Error("File upload failed.");
-
-      const uploadResult = await uploadResponse.json();
-
-      if (uploadResult.status === "ok") {
-        const originalLink = `https://${server}.gofile.io/download/${uploadResult.data.id}/${uploadResult.data.name}`;
-        const uniqueId = uuidv4();
-        const maskedLink = `https://filesharepro.us.kg/${uniqueId}`;
-        setMaskedLink(maskedLink);
-        setShareLink(originalLink);
-
-        const fileDetails = {
-          ...uploadResult.data,
-          downloadPage: `https://gofile.io/d/${uploadResult.data.parentFolderCode}`,
-        };
-
-        await storeLinkMapping(uniqueId, originalLink, fileDetails);
-
-        setUploading(false);
-        toast.success("File uploaded successfully!");
-      } else {
-        throw new Error("Invalid server response.");
+      if (!apiKey) {
+        throw new Error("API key is missing.");
       }
+
+      // Create the Basic Authentication header
+      const authHeader = `Basic ${btoa(":" + apiKey)}`;
+
+      // Use the PUT API to upload the file
+      const uploadResponse = await fetch(
+        `https://pixeldrain.com/api/file/${encodeURIComponent(file.name)}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: authHeader,
+            "Content-Type": "application/octet-stream",
+          },
+          body: file, // Send the file as raw binary data
+        }
+      );
+      const uploadResult = await uploadResponse.json();
+      if (!uploadResult.success) {
+        throw new Error("File upload failed with message: " + uploadResult.message);
+      }
+
+      const originalLink = `https://pixeldrain.com/u/${uploadResult.id}`;
+      
+      // Use the same ID from Pixeldrain as the masked link
+      const maskedLink = `https://filesharepro.us.kg/${uploadResult.id}`;
+
+      setMaskedLink(maskedLink);
+      setShareLink(originalLink);
+
+      const fileDetails = {
+        id: uploadResult.id,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        link: originalLink,
+      };
+
+      await storeLinkMapping(uploadResult.id, originalLink, fileDetails);
+
+      setUploading(false);
+      toast.success("File uploaded successfully!");
     } catch (error) {
       setUploading(false);
       toast.error("An error occurred during file upload.");
@@ -91,15 +105,16 @@ export default function SharePage2() {
     toast.success("Link copied to clipboard!");
   };
 
-  const storeLinkMapping = async (uniqueId: string, originalLink: string, fileDetails: any) => {
-    const githubApiUrl = "https://api.github.com/repos/codecrumbs404/databse/contents/file.json";
-    const token = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
-
-    if (!token) {
-      throw new Error("GitHub token is missing.");
-    }
-
+  const storeLinkMapping = async (fileId: string, originalLink: string, fileDetails: any) => {
     try {
+      const githubApiUrl = "https://api.github.com/repos/codecrumbs404/databse/contents/file.json";
+      const token = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
+
+      if (!token) {
+        throw new Error("GitHub token is missing.");
+      }
+
+      // Fetch the existing file.json content from GitHub
       const fileResponse = await fetch(githubApiUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -111,7 +126,7 @@ export default function SharePage2() {
 
       const existingData = JSON.parse(atob(fileData.content));
       const newEntry = {
-        maskedLink: `https://filesharepro.us.kg/${uniqueId}`,
+        maskedLink: `https://filesharepro.us.kg/${fileId}`,
         originalLink,
         fileDetails,
       };
@@ -134,11 +149,7 @@ export default function SharePage2() {
 
       if (!updateResponse.ok) throw new Error("Failed to update file.json.");
     } catch (error) {
-      if (error instanceof Error) {
-        console.error("Error updating GitHub file:", error.message);
-      } else {
-        console.error("Error updating GitHub file:", error);
-      }
+      toast.error("Error updating GitHub file.");
     }
   };
 
@@ -182,11 +193,10 @@ export default function SharePage2() {
             <p className="text-base sm:text-lg mb-2">
               {isDragActive ? "Drop the file here" : "Drag & drop a file here, or click to select"}
             </p>
-            <p className="text-sm text-muted-foreground">Maximum file size: 100GB</p>
+            <p className="text-sm text-muted-foreground">Maximum file size: 10GB</p>
           </div>
         </motion.div>
 
-        
         {uploading && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}

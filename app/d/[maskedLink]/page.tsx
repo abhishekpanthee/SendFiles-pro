@@ -35,6 +35,7 @@ export default function DownloadPage() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [fileSize, setFileSize] = useState<number | null>(null);
   const [fileMimeType, setFileMimeType] = useState<string | null>(null);
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null); // New state for the thumbnail
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,23 +66,23 @@ export default function DownloadPage() {
           setFileSize(fileData.fileDetails.size);
           setFileMimeType(fileData.fileDetails.mimetype);
   
-          // Ensure the originalLink is valid before calling the proxy
-          if (fileData.originalLink) {
-            console.log("Calling proxy endpoint with URL:", fileData.originalLink);
-            fetch(`/api/proxy?url=${encodeURIComponent(fileData.originalLink)}`)
-              .then((response) => {
-                if (response.ok) {
-                  console.log("Proxy fetch successful");
-                } else {
-                  console.error("Proxy fetch failed with status:", response.status);
-                }
-              })
-              .catch((error) => {
-                console.error("Proxy fetch failed:", error);
-              });
-          } else {
-            console.error("originalLink is missing or invalid");
-          }
+          // Request the thumbnail image from Pixeldrain API
+          const thumbnailId = fileData.fileDetails.id;
+          const thumbnailApiUrl = `https://pixeldrain.com/api/file/${thumbnailId}/thumbnail?width=128&height=128`;
+
+          // Fetch the thumbnail
+          fetch(thumbnailApiUrl)
+            .then((response) => {
+              if (response.ok) {
+                setThumbnailUrl(thumbnailApiUrl); // Set thumbnail URL if the request is successful
+              } else {
+                console.error("Failed to load thumbnail");
+              }
+            })
+            .catch((error) => {
+              console.error("Error fetching thumbnail:", error);
+            });
+  
         } else {
           setError('File not found');
         }
@@ -93,16 +94,11 @@ export default function DownloadPage() {
       });
   }, [maskedLink]);
 
-  const handleDownloadRedirect = () => {
+  const handleDownload = () => {
     if (originalLink) {
-      // Redirect to the download URL for a short period and return back
-      const currentUrl = window.location.href;
-      window.location.href = originalLink; // Redirect to the file URL
-
-      // After a brief delay, redirect back to the current page
-      setTimeout(() => {
-        window.location.href = currentUrl;
-      }, 150); // Adjust the delay (in milliseconds)
+      // Directly download the file using the id in the URL
+      const downloadUrl = `${originalLink}?id=${maskedLink}`;
+      window.location.href = downloadUrl; // Initiate the download by setting the location
     }
   };
 
@@ -174,6 +170,22 @@ export default function DownloadPage() {
           Download Your File
         </h1>
 
+        {/* File Thumbnail */}
+        {thumbnailUrl && (
+          <motion.div
+            className="flex justify-center mb-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <img
+              src={thumbnailUrl}
+              alt="Thumbnail"
+              className="w-32 h-32 object-cover rounded-md"
+            />
+          </motion.div>
+        )}
+
         {/* File Details */}
         {fileName && fileSize && fileMimeType && (
           <motion.div
@@ -202,7 +214,7 @@ export default function DownloadPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
           >
-            <Button size="lg" className="gap-2" onClick={handleDownloadRedirect}>
+            <Button size="lg" className="gap-2" onClick={handleDownload}>
               <Download className="h-4 w-4" aria-hidden="true" />
               Download File
             </Button>
