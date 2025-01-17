@@ -9,7 +9,7 @@ import { useMemo } from "react";
 
 const posts = [
   {
-    title: "Getting Started with FileShare Pro",
+    title: "Getting Started with SendFiles Pro",
     excerpt: "Learn how to share files securely using our platform.",
     date: "2024-02-28",
     slug: "getting-started",
@@ -21,7 +21,7 @@ const posts = [
     slug: "security-best-practices",
   },
   {
-    title: "What's New in FileShare Pro",
+    title: "What's New in SendFiles Pro",
     excerpt: "Latest features and improvements in our platform.",
     date: "2024-02-26",
     slug: "whats-new",

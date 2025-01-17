@@ -22,7 +22,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>FileShare Pro - Secure File Sharing Platform</title>
+        <title>SendFiles Pro - Secure File Sharing Platform</title>
         <meta
           name="description"
           content="Transfer files securely with end-to-end encryption. No registration required."

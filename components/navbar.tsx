@@ -5,8 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { FileText, Moon, Sun, Menu, X } from "lucide-react";
+import { FolderSync, Moon, Sun, Menu, X } from "lucide-react";
 import { useTheme } from "next-themes";
+
 
 export function Navbar() {
   const pathname = usePathname();
@@ -16,11 +17,10 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className=" flex h-14 items-center justify-between px-14">
-        {/* Logo */}
         <div className="flex items-center">
           <Link href="/" className="flex items-center space-x-2" aria-label="FileShare Pro Home">
-            <FileText className="h-6 w-6" aria-hidden="true" />
-            <span className="font-bold hidden sm:inline">FileShare Pro</span>
+            <FolderSync className="h-6 w-6" aria-hidden="true" />
+            <span className="font-bold hidden sm:inline">SendFiles Pro</span>
           </Link>
         </div>
 

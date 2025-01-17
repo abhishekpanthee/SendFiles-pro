@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { motion } from "framer-motion";
@@ -9,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import Head from "next/head";
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024 * 1024; // 10GB
+const MAX_FILE_SIZE = 10 * 1024 * 1024 * 1024; // 100GB
 
 export default function SharePage2() {
   const [uploading, setUploading] = useState(false);
@@ -17,76 +16,45 @@ export default function SharePage2() {
   const [shareLink, setShareLink] = useState("");
   const [maskedLink, setMaskedLink] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
   const onDrop = async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
-
+  
     const file = acceptedFiles[0];
     if (file.size > MAX_FILE_SIZE) {
-      toast.error("File size exceeds 10GB limit");
+      toast.error("File size exceeds 100GB limit");
       return;
     }
-
+  
     setSelectedFile(file);
     setUploading(true);
     setProgress(0);
-
+  
+    const formData = new FormData();
+    formData.append("file", file);
+  
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      // Get the API key from environment variables
-      const apiKey = process.env.NEXT_PUBLIC_PIXELDRAIN_TOKEN;
-
-      if (!apiKey) {
-        throw new Error("API key is missing.");
-      }
-
-      // Create the Basic Authentication header
-      const authHeader = `Basic ${btoa(":" + apiKey)}`;
-
-      // Use the PUT API to upload the file
-      const uploadResponse = await fetch(
-        `https://pixeldrain.com/api/file/${encodeURIComponent(file.name)}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: authHeader,
-            "Content-Type": "application/octet-stream",
-          },
-          body: file, // Send the file as raw binary data
-        }
-      );
+      // Make a request to your backend for file upload
+      const uploadResponse = await fetch("http://127.0.0.1:8000/api/upload/", {
+        method: "POST",
+        body: formData,
+      });
       const uploadResult = await uploadResponse.json();
-      if (!uploadResult.success) {
-        throw new Error("File upload failed with message: " + uploadResult.message);
-      }
-
-      const originalLink = `https://pixeldrain.com/u/${uploadResult.id}`;
-      
-      // Use the same ID from Pixeldrain as the masked link
-      const maskedLink = `https://filesharepro.us.kg/${uploadResult.id}`;
-
-      setMaskedLink(maskedLink);
-      setShareLink(originalLink);
-
-      const fileDetails = {
-        id: uploadResult.id,
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        link: originalLink,
-      };
-
-      await storeLinkMapping(uploadResult.id, originalLink, fileDetails);
-
-      setUploading(false);
-      toast.success("File uploaded successfully!");
+  
+      if (uploadResult.success) {
+        setMaskedLink(uploadResult.masked_link || `https://fileshare.us.kg/d/${uploadResult.file_id}`);
+        setUploading(false);
+        toast.success("File uploaded successfully!");
+    } else {
+        setUploading(false);
+        toast.error("File upload failed: " + (uploadResult.message || "Unknown error."));
+    }
     } catch (error) {
       setUploading(false);
       toast.error("An error occurred during file upload.");
     }
   };
+  
+  
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -105,53 +73,6 @@ export default function SharePage2() {
     toast.success("Link copied to clipboard!");
   };
 
-  const storeLinkMapping = async (fileId: string, originalLink: string, fileDetails: any) => {
-    try {
-      const githubApiUrl = "https://api.github.com/repos/codecrumbs404/databse/contents/file.json";
-      const token = process.env.NEXT_PUBLIC_GITHUB_TOKEN;
-
-      if (!token) {
-        throw new Error("GitHub token is missing.");
-      }
-
-      // Fetch the existing file.json content from GitHub
-      const fileResponse = await fetch(githubApiUrl, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!fileResponse.ok) throw new Error("Failed to fetch file.json from GitHub.");
-
-      const fileData = await fileResponse.json();
-      const sha = fileData.sha;
-
-      const existingData = JSON.parse(atob(fileData.content));
-      const newEntry = {
-        maskedLink: `https://filesharepro.us.kg/${fileId}`,
-        originalLink,
-        fileDetails,
-      };
-
-      existingData.push(newEntry);
-
-      const updatedContent = btoa(JSON.stringify(existingData, null, 2));
-      const updateResponse = await fetch(githubApiUrl, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: "Add new file mapping",
-          content: updatedContent,
-          sha,
-        }),
-      });
-
-      if (!updateResponse.ok) throw new Error("Failed to update file.json.");
-    } catch (error) {
-      toast.error("Error updating GitHub file.");
-    }
-  };
 
   return (
     <>
@@ -193,10 +114,11 @@ export default function SharePage2() {
             <p className="text-base sm:text-lg mb-2">
               {isDragActive ? "Drop the file here" : "Drag & drop a file here, or click to select"}
             </p>
-            <p className="text-sm text-muted-foreground">Maximum file size: 10GB</p>
+            <p className="text-sm text-muted-foreground">Maximum file size: 100GB</p>
           </div>
         </motion.div>
 
+        
         {uploading && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
