@@ -41,7 +41,7 @@ export default function SharePage2() {
       const uploadResult = await uploadResponse.json();
   
       if (uploadResult.success) {
-        setMaskedLink(uploadResult.masked_link || `https://fileshare.us.kg/d/${uploadResult.file_id}`);
+        setMaskedLink(uploadResult.masked_link || `https://sendfilespro.us.kg/d/${uploadResult.file_id}`);
         setUploading(false);
         toast.success("File uploaded successfully!");
     } else {
@@ -77,7 +77,7 @@ export default function SharePage2() {
   return (
     <>
       <Head>
-        <title>Share Files - FileShare Pro</title>
+        <title>Share Files - SendFiles Pro</title>
         <meta
           name="description"
           content="Securely share files with end-to-end encryption. Drag and drop your files to get started."
