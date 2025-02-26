@@ -34,14 +34,14 @@ export default function SharePage2() {
   
     try {
       // Make a request to your backend for file upload
-      const uploadResponse = await fetch("http://127.0.0.1:8000/api/upload/", {
+      const uploadResponse = await fetch("https://sendfilespro-backend.onrender.com/api/upload/", {
         method: "POST",
         body: formData,
       });
       const uploadResult = await uploadResponse.json();
   
       if (uploadResult.success) {
-        setMaskedLink(uploadResult.masked_link || `https://sendfilespro.us.kg/d/${uploadResult.file_id}`);
+        setMaskedLink(`https://sendfilespro.us.kg/d/${uploadResult.file_id}`);
         setUploading(false);
         toast.success("File uploaded successfully!");
     } else {
